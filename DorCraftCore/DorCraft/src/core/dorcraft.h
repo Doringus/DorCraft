@@ -3,16 +3,18 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+
 struct gameButtonState_t {
 	bool pressed;
 };
 
-struct gameInput {
-	gameButtonState_t up;
-	gameButtonState_t down;
+struct gameInput_t {
+	gameButtonState_t forward;
+	gameButtonState_t back;
 	gameButtonState_t left;
 	gameButtonState_t right;
 };
 
-static void gameUpdateAndRender(gameInput *input);
-static void processGlfwButtonInput(GLFWwindow *window, int key, gameButtonState_t *state);
+void gameLoop(GLFWwindow *window);
+static void gameUpdate(gameInput_t *input);
+static void gameRender();
