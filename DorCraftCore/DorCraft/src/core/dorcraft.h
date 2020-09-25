@@ -18,3 +18,5 @@ struct gameInput_t {
 void gameLoop(GLFWwindow *window);
 static void gameUpdate(gameInput_t *input);
 static void gameRender();
+static void* readFile(char *filename);
+static bool writeFile(char *filename, unsigned int memSize, void *memory);
