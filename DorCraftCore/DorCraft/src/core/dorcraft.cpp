@@ -1,6 +1,6 @@
 #include "dorcraft.h"
+#include "dorcraftinternals.h"
 
-#include <stdio.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -72,21 +72,17 @@ static void* readFile(char *filename) {
 				if (ReadFile(fileHandle, result, fileSize.QuadPart, &bytesRead, 0)
 					&& fileSize.QuadPart == bytesRead) {
 					// File read successfully
+				} else {
+					ERROR_LOG("Cannot read file %s\n", filename);
 				}
-				else {
-
-				}
+			} else {
+				ERROR_LOG("Cannot alloc memory for file data %s\n", filename);
 			}
-			else {
-
-			}
+		} else {
+			ERROR_LOG("Cannot get file size %s\n", filename);
 		}
-		else {
-
-		}
-	}
-	else {
-		
+	} else {
+		ERROR_LOG("Cannot open file for reading %s\n", filename);
 	}
 	return(result);
 }
@@ -98,10 +94,11 @@ static bool writeFile(char* filename, unsigned int memSize, void* memory) {
 		DWORD bytesWritten;
 		if (WriteFile(fileHandle, memory, memSize, &bytesWritten, 0)) {
 			result = (bytesWritten == memSize);
+		} else {
+			ERROR_LOG("Cannot write to file %s\n", filename);
 		}
-		else {
-
-		}
+	} else {
+		ERROR_LOG("Cannot open file %s\n", filename);
 	}
 	return result;
 }

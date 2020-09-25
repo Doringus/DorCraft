@@ -26,5 +26,8 @@
     <ClInclude Include="src\core\dorcraft.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="src\core\dorcraftinternals.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
