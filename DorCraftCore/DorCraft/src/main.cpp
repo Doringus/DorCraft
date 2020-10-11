@@ -7,7 +7,7 @@
 int main() {
 // Opengl
 #if 1
-	initGlContext(640, 480, "Dorcraft");
+	initGlContext(1000, 680, "Dorcraft");
 	glGameLoop();
 #endif
 	return(0);

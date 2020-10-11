@@ -7,8 +7,27 @@
 #include <string.h>
 #include <cstdlib>
 
-static void processGlfwButtonInput(GLFWwindow* window, gameButtonState_t* newState, int key) {
+static void processGlfwButtonInput(GLFWwindow *window, gameButtonState_t *newState, int key) {
 	newState->pressed = glfwGetKey(window, key);
+}
+
+static void processGlfwMouseButtonInput(GLFWwindow *window, gameButtonState_t *newState, int key) {
+	newState->pressed = glfwGetMouseButton(window, key);
+}
+
+static void moveCamera(camera_t *camera, gameInput_t *input, double dt) {
+	if (input->forward.pressed) {
+		camera->position += (GLfloat)(0.05f * dt) * camera->front;
+	}
+	if (input->back.pressed) {
+		camera->position -= (GLfloat)(0.05f * dt) * camera->front;
+	}
+	if (input->right.pressed) {
+		camera->position += glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(0.05f * dt);
+	}
+	if (input->left.pressed) {
+		camera->position -= glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(0.05f * dt);
+	}
 }
 
 void glGameLoop() {
@@ -27,7 +46,17 @@ void glGameLoop() {
 	};
 	renderBuffer_t buf;
 	createChunksRenderBuffer(&buf, vertices, sizeof(vertices));
+	/*Create shader and init uniforms*/
 	GLuint shader = createShader(vertexShaderCode, fragmentShaderCode);
+	GLint mvpLocation = glGetUniformLocation(shader, "mvp");
+	glm::mat4 model = glm::mat4(1.0f);
+	glm::mat4 view;
+	glm::mat4 projection = glm::perspective(45.0f, (GLfloat)windowInfo.windowWidth / (GLfloat)windowInfo.windowHeight, 0.1f, 2500.0f);
+	/* Setup camera*/
+	camera_t cam = {};
+	cam.position = glm::vec3(0.0f, 0.0f, 3.0f);
+	cam.front = glm::vec3(0.0f, 0.0f, -1.0f);
+	cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	while (!glfwWindowShouldClose(windowInfo.window)) {
 		/* Poll events */
@@ -38,11 +67,15 @@ void glGameLoop() {
 		processGlfwButtonInput(windowInfo.window, &input.forward, GLFW_KEY_W);
 		processGlfwButtonInput(windowInfo.window, &input.left, GLFW_KEY_A);
 		processGlfwButtonInput(windowInfo.window, &input.right, GLFW_KEY_D);
+		processGlfwMouseButtonInput(windowInfo.window, &input.leftMouseButton, GLFW_MOUSE_BUTTON_LEFT);
+		processGlfwMouseButtonInput(windowInfo.window, &input.rightMouseButton, GLFW_MOUSE_BUTTON_RIGHT);
 
 		double currentTime = glfwGetTime();
 		dt += (currentTime - lastTime) / timePerFrame;
 		lastTime = currentTime;
 		while (dt >= 1.0) {
+			moveCamera(&cam, &input, dt);
+			view = glm::lookAt(cam.position, cam.position + cam.front, cam.up);
 			gameUpdate(&input);
 			updates++;
 			dt--;
@@ -58,6 +91,9 @@ void glGameLoop() {
 		glClear(GL_COLOR_BUFFER_BIT);
 		/* Render */
 		glUseProgram(shader);
+		glm::mat4 mvpMatrix = projection * view * model;
+		glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
+
 		glBindVertexArray(buf.vao);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);

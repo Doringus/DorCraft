@@ -4,6 +4,10 @@
 #include <GLFW/glfw3.h>
 #include <stdint.h>
 
+#include "../../vendor/glm/glm.hpp"
+#include "../../vendor/glm/gtc/matrix_transform.hpp"
+#include "../../vendor/glm/gtc/type_ptr.hpp"
+
 struct uniformLocation_t {
 	GLint location;
 };
@@ -19,6 +23,12 @@ struct windowInfo_t {
 	uint16_t windowWidth;
 	uint16_t windowHeight;
 	GLFWwindow* window;
+};
+
+struct camera_t {
+	glm::vec3 position;
+	glm::vec3 front;
+	glm::vec3 up;
 };
 
 static GLuint defaultBindingIndex = 0;

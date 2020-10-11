@@ -8,7 +8,7 @@ void main()
 	color = texture(ourTexture1, TexCoord);
 }
 */
-#version 450 core
+#version 330 core
 in vec2 TexCoord;
 
 out vec4 color;
