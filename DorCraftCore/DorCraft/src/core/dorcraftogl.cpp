@@ -15,7 +15,8 @@ static void processGlfwMouseButtonInput(GLFWwindow *window, gameButtonState_t *n
 	newState->pressed = glfwGetMouseButton(window, key);
 }
 
-static void moveCamera(camera_t *camera, gameInput_t *input, double dt) {
+static void moveAndRotateCamera(camera_t *camera, gameInput_t *input, double offsetX, double offsetY, double dt) {
+	/* Move camera */
 	if (input->forward.pressed) {
 		camera->position += (GLfloat)(0.05f * dt) * camera->front;
 	}
@@ -28,6 +29,21 @@ static void moveCamera(camera_t *camera, gameInput_t *input, double dt) {
 	if (input->left.pressed) {
 		camera->position -= glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(0.05f * dt);
 	}
+	/* Rotate camera */
+	offsetX *= 0.05f * dt;
+	offsetY *= 0.05f * dt;
+	camera->yaw += offsetX;
+	camera->pitch += offsetY;
+	if (camera->pitch > 89.0f) {
+		camera->pitch = 89.0f;
+	}
+	if (camera->pitch < -89.0f) {
+		camera->pitch = -89.0f;
+	}
+	camera->front.x = cos(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+	camera->front.y = sin(glm::radians(camera->pitch));
+	camera->front.z = sin(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+	camera->front = glm::normalize(camera->front);
 }
 
 void glGameLoop() {
@@ -58,6 +74,11 @@ void glGameLoop() {
 	cam.front = glm::vec3(0.0f, 0.0f, -1.0f);
 	cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
 
+	mousePosition_t mousePosition = {};
+	mousePosition.currentX = (double)windowInfo.windowWidth / 2.0;
+	mousePosition.currentY = (double)windowInfo.windowHeight / 2.0;
+	glfwSetCursorPos(windowInfo.window, mousePosition.currentX, mousePosition.currentY);
+
 	while (!glfwWindowShouldClose(windowInfo.window)) {
 		/* Poll events */
 		glfwPollEvents();
@@ -69,12 +90,17 @@ void glGameLoop() {
 		processGlfwButtonInput(windowInfo.window, &input.right, GLFW_KEY_D);
 		processGlfwMouseButtonInput(windowInfo.window, &input.leftMouseButton, GLFW_MOUSE_BUTTON_LEFT);
 		processGlfwMouseButtonInput(windowInfo.window, &input.rightMouseButton, GLFW_MOUSE_BUTTON_RIGHT);
-
+		/* Get mouse postiton*/
+		glfwGetCursorPos(windowInfo.window, &mousePosition.currentX, &mousePosition.currentY);
+		double offsetX = mousePosition.currentX - mousePosition.prevX;
+		double offsetY = mousePosition.currentY - mousePosition.prevY;
+		mousePosition.prevX = mousePosition.currentX;
+		mousePosition.prevY = mousePosition.currentY;
 		double currentTime = glfwGetTime();
 		dt += (currentTime - lastTime) / timePerFrame;
 		lastTime = currentTime;
 		while (dt >= 1.0) {
-			moveCamera(&cam, &input, dt);
+			moveAndRotateCamera(&cam, &input, offsetX, offsetY, dt);
 			view = glm::lookAt(cam.position, cam.position + cam.front, cam.up);
 			gameUpdate(&input);
 			updates++;
@@ -127,7 +153,7 @@ bool initGlContext(int windowWidth, int windowHeight, char *windowTitle) {
 	}
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(glDebugOutput, NULL);
-
+	glfwSetInputMode(windowInfo.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 
