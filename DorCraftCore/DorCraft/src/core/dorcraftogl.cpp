@@ -18,22 +18,22 @@ static void processGlfwMouseButtonInput(GLFWwindow *window, gameButtonState_t *n
 static void moveAndRotateCamera(camera_t *camera, gameInput_t *input, double offsetX, double offsetY, double dt) {
 	/* Move camera */
 	if (input->forward.pressed) {
-		camera->position += (GLfloat)(0.05f * dt) * camera->front;
+		camera->position += (GLfloat)(2.0f * dt) * camera->front;
 	}
 	if (input->back.pressed) {
-		camera->position -= (GLfloat)(0.05f * dt) * camera->front;
+		camera->position -= (GLfloat)(2.0f * dt) * camera->front;
 	}
 	if (input->right.pressed) {
-		camera->position += glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(0.05f * dt);
+		camera->position += glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(2.0f * dt);
 	}
 	if (input->left.pressed) {
-		camera->position -= glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(0.05f * dt);
+		camera->position -= glm::normalize(glm::cross(camera->front, camera->up)) * (GLfloat)(2.0f * dt);
 	}
 	/* Rotate camera */
-	offsetX *= 0.05f * dt;
-	offsetY *= 0.05f * dt;
+	offsetX *= 2.0f * dt;
+	offsetY *= 2.0f * dt;
 	camera->yaw += offsetX;
-	camera->pitch += offsetY;
+	camera->pitch -= offsetY;
 	if (camera->pitch > 89.0f) {
 		camera->pitch = 89.0f;
 	}
@@ -47,10 +47,8 @@ static void moveAndRotateCamera(camera_t *camera, gameInput_t *input, double off
 }
 
 void glGameLoop() {
-	double timePerFrame = 1.0 / 60.0;
-	double timer = glfwGetTime();
-	double dt = 0.0;
-	double lastTime = glfwGetTime();
+	double dt = 1.0f / 60.0f;
+	double beginTicks = glfwGetTimerValue();
 	short updates = 0, frames = 0;
 
 	char* fragmentShaderCode = (char*)readFile("src\\shaders\\basic.frag");
@@ -73,6 +71,7 @@ void glGameLoop() {
 	cam.position = glm::vec3(0.0f, 0.0f, 3.0f);
 	cam.front = glm::vec3(0.0f, 0.0f, -1.0f);
 	cam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+	cam.yaw = -90.0f;
 
 	mousePosition_t mousePosition = {};
 	mousePosition.currentX = (double)windowInfo.windowWidth / 2.0;
@@ -80,6 +79,7 @@ void glGameLoop() {
 	glfwSetCursorPos(windowInfo.window, mousePosition.currentX, mousePosition.currentY);
 
 	while (!glfwWindowShouldClose(windowInfo.window)) {
+		printf("%f\n", dt);
 		/* Poll events */
 		glfwPollEvents();
 		/* Input */
@@ -96,36 +96,30 @@ void glGameLoop() {
 		double offsetY = mousePosition.currentY - mousePosition.prevY;
 		mousePosition.prevX = mousePosition.currentX;
 		mousePosition.prevY = mousePosition.currentY;
-		double currentTime = glfwGetTime();
-		dt += (currentTime - lastTime) / timePerFrame;
-		lastTime = currentTime;
-		while (dt >= 1.0) {
-			moveAndRotateCamera(&cam, &input, offsetX, offsetY, dt);
-			view = glm::lookAt(cam.position, cam.position + cam.front, cam.up);
-			gameUpdate(&input);
-			updates++;
-			dt--;
-		}
-		frames++;
-		if (currentTime - timer > 1.0) {
-			timer = currentTime;
-			//printf("Updates %d, frames %d\n", updates, frames);
-			updates = 0;
-			frames = 0;
-		}
-
-		glClear(GL_COLOR_BUFFER_BIT);
+		/* Update game */
+		moveAndRotateCamera(&cam, &input, offsetX, offsetY, dt);
+		view = glm::lookAt(cam.position, cam.position + cam.front, cam.up);
+		gameUpdate(&input);
 		/* Render */
+		glClear(GL_COLOR_BUFFER_BIT);
 		glUseProgram(shader);
 		glm::mat4 mvpMatrix = projection * view * model;
 		glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(mvpMatrix));
-
 		glBindVertexArray(buf.vao);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glBindVertexArray(0);
 		/***********/
 		glfwSwapBuffers(windowInfo.window);
+		/***********/
+		double endTicks = glfwGetTimerValue();
+		dt = (endTicks - beginTicks) / (double)glfwGetTimerFrequency();
+		if (dt > 1.0f) {
+			dt = 1.0f / 60.0f;
+		}
 	}
+	glDeleteVertexArrays(1, &buf.vao);
+	glDeleteBuffers(1, &buf.vbo);
+	glDeleteProgram(shader);
 	glfwTerminate();
 }
 
