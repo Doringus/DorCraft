@@ -17,6 +17,10 @@
 #define ERROR_LOG(log, ...) printf(OUTPUT_COLOR_RED log OUTPUT_COLOR_RESET "\n", ##__VA_ARGS__)
 #define WARNING_LOG(log, ...) printf(OUTPUT_COLOR_YELLOW log OUTPUT_COLOR_RESET "\n", ##__VA_ARGS__)
 
+#define KILOBYTES(value) ((value) * 1024)
+#define MEGABYTES(value) (KILOBYTES(value) * 1024)
+#define GIGABYTES(value) (MEGABYTES(value) * 1024)
+
 static void* readFile(char *filename) {
 	void* result = 0;
 	HANDLE fileHandle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);

@@ -1,14 +1,12 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-
-#include "core/dorcraftogl.h"
+//#include "core/dorcraftogl.h"
+#include "core/dorcraftplatform.h"
 
 int main() {
 // Opengl
-#if 1
+#if 0
 	initGlContext(1000, 680, "Dorcraft");
 	glGameLoop();
 #endif
+	startGame(1000, 680, "Dorcraft");
 	return(0);
 }
