@@ -21,8 +21,4 @@ struct renderBuffer_t {
 
 void initOpenGl(uint16_t windowWidth, uint16_t windowHeight);
 void renderToOutput(renderGroup_t *renderGroup);
-void allocateTexture(uint32_t width, uint32_t height, void* data);
 void allocateRenderBuffer(void *data, uint64_t size);
-
-static void createChunksRenderBuffer(renderBuffer_t *buffer, void *data, uint64_t dataSize);
-static GLuint createShader(char *vertexShaderCode, char *fragmentShaderCode);

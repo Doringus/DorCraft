@@ -49,14 +49,14 @@ static void moveAndRotateCamera(gameInput_t *input) {
 void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputArea_t *renderOutputArea) {
 	if (!memory->isInitialized) {
 		GLfloat vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.5f, 0.5f, 0.0f,
-		-0.5f, 0.5f, 0.0f
+		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+		-0.5f, 0.5f, 0.0f, 0.0f, 0.0f,
+		0.5f, -0.5f, 0.0f, 0.20f, 1.0f,
+		0.5f, -0.5f, 0.0f, 0.20f, 1.0f, 
+		0.5f, 0.5f, 0.0f, 0.20f, 0.0f,
+		-0.5f, 0.5f, 0.0f, 0.0f, 0.0f
 		};
-		allocateRenderBuffer(vertices, 18);
+		allocateRenderBuffer(vertices, 30);
 
 		camera.position = glm::vec3(0.0f, 0.0f, 3.0f);
 		camera.front = glm::vec3(0.0f, 0.0f, -1.0f);

@@ -7,17 +7,21 @@
 #include <string.h>
 #include <cstdlib>
 #include <stdint.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../vendor/stb/stb.h"
 
 struct opengl_t {
 	GLint mvpLocation;
+	GLint textureSamplerLocation;
 	GLuint basicShader;
 	GLuint vaoId;
 	GLuint vboId;
+	GLuint textureId;
 };
 
 static opengl_t globalOpenGlInfo;
 
-static void glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, void const* user_param) {
+static void glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const *message, void const *user_param) {
 	char sourceStr[20];
 	char typeStr[20];
 	char severityStr[15];
@@ -99,58 +103,6 @@ static void glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity
 	WARNING_LOG("OPENGL: %s, %s, %s, %u, %s", sourceStr, typeStr, severityStr, id, message);
 }
 
-
-void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
-	glewExperimental = GL_TRUE;
-	if (glewInit() != GLEW_OK) {
-		ERROR_LOG("Cannot initialize glew lib");
-	}
-	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(glDebugOutput, NULL);
-	glViewport(0, 0, windowWidth, windowHeight);
-
-	char* fragmentShaderCode = (char*)readFile("src\\shaders\\basic.frag");
-	char* vertexShaderCode = (char*)readFile("src\\shaders\\basic.vert");
-	globalOpenGlInfo.basicShader = createShader(vertexShaderCode, fragmentShaderCode);
-	globalOpenGlInfo.mvpLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "mvp");
-	glCreateBuffers(1, &globalOpenGlInfo.vboId);
-	glCreateVertexArrays(1, &globalOpenGlInfo.vaoId);
-	glVertexArrayAttribBinding(globalOpenGlInfo.vaoId, 0, 1);
-	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 0, 3, GL_FLOAT, GL_FALSE, 0);
-	glEnableVertexArrayAttrib(globalOpenGlInfo.vaoId, 0);
-	glVertexArrayVertexBuffer(globalOpenGlInfo.vaoId, 1, globalOpenGlInfo.vboId, 0, sizeof(GLfloat) * 3);
-}
-
-void renderToOutput(renderGroup_t* renderGroup) {
-	glClear(GL_COLOR_BUFFER_BIT);
-	glUseProgram(globalOpenGlInfo.basicShader);
-	glUniformMatrix4fv(globalOpenGlInfo.mvpLocation, 1, GL_FALSE, glm::value_ptr(
-												renderGroup->projectionMatrix * 
-												renderGroup->viewMatrix * renderGroup->modelMatrix));
-	glBindVertexArray(globalOpenGlInfo.vaoId);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);
-}
-
-void allocateTexture(uint32_t width, uint32_t height, void* data) {
-
-}
-
-void allocateRenderBuffer(void *data, uint64_t size) {
-	glNamedBufferData(globalOpenGlInfo.vboId, sizeof(GLfloat) * size, data, GL_DYNAMIC_DRAW);
-}
-
-static void createChunksRenderBuffer(renderBuffer_t *buffer, void *data, uint64_t dataSize) {
-	glCreateBuffers(1, &buffer->vbo);
-	// Vertices must be float
-	glNamedBufferData(buffer->vbo, sizeof(GLfloat) * dataSize, data, GL_DYNAMIC_DRAW);
-	glCreateVertexArrays(1, &buffer->vao);
-	// glVertexArrayAttribBinding(buffer->vao, 0, defaultBindingIndex);
-	glVertexArrayAttribFormat(buffer->vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-	glEnableVertexArrayAttrib(buffer->vao, 0);
-	//glVertexArrayVertexBuffer(buffer->vao, defaultBindingIndex, buffer->vbo, 0, sizeof(GLfloat) * 3);
-}
-
 static GLuint createShader(char *vertexShaderCode, char *fragmentShaderCode) {
 	GLint result;
 	GLchar info[512];
@@ -183,3 +135,66 @@ static GLuint createShader(char *vertexShaderCode, char *fragmentShaderCode) {
 	glDeleteShader(fragmentShader);
 	return(shader);
 }
+
+static void allocateTexture(uint32_t width, uint32_t height, uint32_t bpp, unsigned char *data) {
+	glCreateTextures(GL_TEXTURE_2D, 1, &globalOpenGlInfo.textureId);
+	glTextureParameteri(globalOpenGlInfo.textureId, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTextureParameteri(globalOpenGlInfo.textureId, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTextureParameteri(globalOpenGlInfo.textureId, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTextureParameteri(globalOpenGlInfo.textureId, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureStorage2D(globalOpenGlInfo.textureId, 1, GL_RGBA8, width, height);
+	glTextureSubImage2D(globalOpenGlInfo.textureId, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glGenerateTextureMipmap(globalOpenGlInfo.textureId); 
+}
+
+void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
+	glewExperimental = GL_TRUE;
+	if (glewInit() != GLEW_OK) {
+		ERROR_LOG("Cannot initialize glew lib");
+	}
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(glDebugOutput, NULL);
+	glViewport(0, 0, windowWidth, windowHeight);
+
+	char *fragmentShaderCode = (char*)readFile("src\\shaders\\basic.frag");
+	char *vertexShaderCode = (char*)readFile("src\\shaders\\basic.vert");
+	globalOpenGlInfo.basicShader = createShader(vertexShaderCode, fragmentShaderCode);
+	globalOpenGlInfo.mvpLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "mvp");
+	globalOpenGlInfo.textureSamplerLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "textureSampler");
+	glCreateBuffers(1, &globalOpenGlInfo.vboId);
+	glCreateVertexArrays(1, &globalOpenGlInfo.vaoId);
+	
+	glVertexArrayAttribBinding(globalOpenGlInfo.vaoId, 0, 1);
+	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 0, 3, GL_FLOAT, GL_FALSE, 0);
+	glEnableVertexArrayAttrib(globalOpenGlInfo.vaoId, 0);
+
+	glVertexArrayAttribBinding(globalOpenGlInfo.vaoId, 1, 1);
+	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 1, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat));
+	glEnableVertexArrayAttrib(globalOpenGlInfo.vaoId, 1);
+
+	glVertexArrayVertexBuffer(globalOpenGlInfo.vaoId, 1, globalOpenGlInfo.vboId, 0, sizeof(GLfloat) * 5);
+	stbi_set_flip_vertically_on_load(1);
+	int32_t textureWidth, textureHeight, bpp;
+	unsigned char *data = stbi_load("res\\grassTexture2.png", &textureWidth, &textureHeight, &bpp, 4);
+ 	allocateTexture((uint32_t)textureWidth, (uint32_t)textureHeight, bpp, data);
+	stbi_image_free(data);
+}
+
+void renderToOutput(renderGroup_t *renderGroup) {
+	glClear(GL_COLOR_BUFFER_BIT);
+	glUseProgram(globalOpenGlInfo.basicShader);
+	glUniformMatrix4fv(globalOpenGlInfo.mvpLocation, 1, GL_FALSE, glm::value_ptr(
+											renderGroup->projectionMatrix * 
+											renderGroup->viewMatrix * renderGroup->modelMatrix));
+	glUniform1i(globalOpenGlInfo.textureSamplerLocation, 0);
+	glBindTextureUnit(0, globalOpenGlInfo.textureId);
+	glBindVertexArray(globalOpenGlInfo.vaoId);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+}
+
+void allocateRenderBuffer(void *data, uint64_t size) {
+	glNamedBufferData(globalOpenGlInfo.vboId, sizeof(GLfloat) * size, data, GL_DYNAMIC_DRAW);
+}
+
+
