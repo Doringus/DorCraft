@@ -1,6 +1,7 @@
 #include "dorcraft.h"
 #include "dorcraftutils.h"
 #include "dorcraftogl.h"
+#include "noisegenerator.h"
 
 struct camera_t {
 	glm::vec3 position;
@@ -67,6 +68,14 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		renderGroup.projectionMatrix = glm::perspective(45.0f, (GLfloat)renderOutputArea->areaWidth / (GLfloat)renderOutputArea->areaHeight, 0.1f, 2500.0f);
 
 		memory->isInitialized = true;
+		perlinSeed(12041211233);
+		double frequency = 1.85;
+		for (int i = 0; i < 100; ++i) {
+			for (int j = 0; j < 100; ++j) {
+				double d = octavePerlin((double)i * frequency, (double)j * frequency, 6);
+				printf("%f\n", d);
+			}
+		}
 	}
 	moveAndRotateCamera(input);
 	renderGroup.viewMatrix = glm::lookAt(camera.position, camera.position + camera.front, camera.up);

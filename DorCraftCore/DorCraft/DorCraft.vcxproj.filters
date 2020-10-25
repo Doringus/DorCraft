@@ -27,6 +27,9 @@
     <ClCompile Include="src\core\dorcraftplatform.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\noisegenerator.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\dorcraft.h">
@@ -39,6 +42,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="src\core\dorcraftplatform.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\noisegenerator.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
