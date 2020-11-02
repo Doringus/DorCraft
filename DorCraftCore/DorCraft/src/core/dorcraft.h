@@ -3,6 +3,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include "../../vendor/glm/glm.hpp"
+#include "../../vendor/glm/gtc/matrix_transform.hpp"
+#include "../../vendor/glm/gtc/type_ptr.hpp"
+
 struct gameButtonState_t {
 	bool pressed;
 };
@@ -38,3 +42,36 @@ struct renderOutputArea_t {
 };
 
 void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputArea_t *renderOutputArea);
+
+///// Internal 
+
+#define CHUNK_SIZE 16
+
+struct camera_t {
+	glm::vec3 position;
+	glm::vec3 front;
+	glm::vec3 up;
+	double pitch;
+	double yaw;
+};
+
+struct chunk_t {
+	uint8_t blocks[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
+	int64_t offsetX;
+	int64_t offsetY;
+	int64_t offsetZ;
+};
+
+struct memoryArena_t {
+	uint8_t *base;
+	uint64_t size;
+	uint64_t used;
+};
+
+struct gameState_t {
+	memoryArena_t chunksData;
+	memoryArena_t renderData;
+};
+
+
+static camera_t camera;

@@ -20,6 +20,7 @@ struct opengl_t {
 };
 
 static opengl_t globalOpenGlInfo;
+static int64_t trianglesCount = 0;
 
 static void glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const *message, void const *user_param) {
 	char sourceStr[20];
@@ -153,6 +154,7 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 		ERROR_LOG("Cannot initialize glew lib");
 	}
 	glEnable(GL_DEBUG_OUTPUT);
+	glEnable(GL_DEPTH_TEST);
 	glDebugMessageCallback(glDebugOutput, NULL);
 	glViewport(0, 0, windowWidth, windowHeight);
 
@@ -181,7 +183,7 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 }
 
 void renderToOutput(renderGroup_t *renderGroup) {
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(globalOpenGlInfo.basicShader);
 	glUniformMatrix4fv(globalOpenGlInfo.mvpLocation, 1, GL_FALSE, glm::value_ptr(
 											renderGroup->projectionMatrix * 
@@ -189,12 +191,13 @@ void renderToOutput(renderGroup_t *renderGroup) {
 	glUniform1i(globalOpenGlInfo.textureSamplerLocation, 0);
 	glBindTextureUnit(0, globalOpenGlInfo.textureId);
 	glBindVertexArray(globalOpenGlInfo.vaoId);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glDrawArrays(GL_TRIANGLES, 0, trianglesCount);
 	glBindVertexArray(0);
 }
 
 void allocateRenderBuffer(void *data, uint64_t size) {
-	glNamedBufferData(globalOpenGlInfo.vboId, sizeof(GLfloat) * size, data, GL_DYNAMIC_DRAW);
+	glNamedBufferData(globalOpenGlInfo.vboId, size, data, GL_DYNAMIC_DRAW);
+	trianglesCount = size / (sizeof(GLfloat) * 5);
 }
 
 
