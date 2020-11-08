@@ -46,6 +46,9 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 ///// Internal 
 
 #define CHUNK_SIZE 16
+#define WORLD_HEIGHT 48
+
+struct world_t;
 
 struct camera_t {
 	glm::vec3 position;
@@ -55,13 +58,6 @@ struct camera_t {
 	double yaw;
 };
 
-struct chunk_t {
-	uint8_t blocks[CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE];
-	int64_t offsetX;
-	int64_t offsetY;
-	int64_t offsetZ;
-};
-
 struct memoryArena_t {
 	uint8_t *base;
 	uint64_t size;
@@ -69,9 +65,34 @@ struct memoryArena_t {
 };
 
 struct gameState_t {
-	memoryArena_t chunksData;
-	memoryArena_t renderData;
+	memoryArena_t chunksData; // info about blocks
+	memoryArena_t renderData; // info about all vertices
+	memoryArena_t worldArena; // hash map
+	world_t *world;
+	camera_t camera;
 };
 
+enum quadFace {
+	TOP,
+	BOTTOM,
+	LEFT,
+	RIGHT,
+	FRONT,
+	BACK
+};
 
-static camera_t camera;
+#define pushStruct(arena, type) (type*)pushStruct_(arena, sizeof(type))
+static void *pushStruct_(memoryArena_t *arena, uint64_t size) {
+	assert((arena->used + size) <= arena->size);
+	void *result = arena->base + arena->used;
+	arena->used += size;
+	return result;
+}
+
+#define pushArray(arena, size, type) (type*)pushArray_(arena, size , sizeof(type))
+static void *pushArray_(memoryArena_t *arena, uint64_t arraySize, uint64_t size) {
+	assert((arena->used + size * arraySize) <= arena->size);
+	void *result = arena->base + arena->used;
+	arena->used += (size * arraySize);
+	return result;
+}

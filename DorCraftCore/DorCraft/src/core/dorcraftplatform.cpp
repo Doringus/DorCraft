@@ -50,7 +50,6 @@ bool startGame(uint16_t windowWidth, uint16_t windowHeight, char *windowTitle) {
 
 	double dt = 1.0f / 60.0f;
 	double beginTicks = glfwGetTimerValue();
-	short updates = 0, frames = 0;
 
 	while (!glfwWindowShouldClose(globalWindowInfo.window)) {
 		/* Poll events */

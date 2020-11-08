@@ -95,6 +95,7 @@
     <ClCompile Include="src\core\dorcraft.cpp" />
     <ClCompile Include="src\core\dorcraftogl.cpp" />
     <ClCompile Include="src\core\dorcraftplatform.cpp" />
+    <ClCompile Include="src\core\dorcraftworld.cpp" />
     <ClCompile Include="src\core\noisegenerator.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
@@ -103,7 +104,9 @@
     <ClInclude Include="src\core\dorcraftplatform.h" />
     <ClInclude Include="src\core\dorcraftutils.h" />
     <ClInclude Include="src\core\dorcraftogl.h" />
+    <ClInclude Include="src\core\dorcraftworld.h" />
     <ClInclude Include="src\core\noisegenerator.h" />
+    <ClInclude Include="vendor\stb\stb_truetype.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
