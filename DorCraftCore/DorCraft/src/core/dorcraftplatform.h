@@ -3,13 +3,13 @@
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
 
-bool startGame(uint16_t windowWidth, uint16_t windowHeight, char* windowTitle);
+bool startGame(uint16_t windowWidth, uint16_t windowHeight, char *windowTitle);
 
 struct windowInfo_t {
 	char *windowTitle;
 	uint16_t windowWidth;
 	uint16_t windowHeight;
-	GLFWwindow* window;
+	GLFWwindow *window;
 };
 
 static windowInfo_t globalWindowInfo;

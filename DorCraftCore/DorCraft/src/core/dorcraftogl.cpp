@@ -1,14 +1,13 @@
 #include "dorcraftogl.h"
 
-#include "dorcraftutils.h"
-#include "dorcraft.h"
-
 #include <GLFW/glfw3.h>
 #include <string.h>
 #include <cstdlib>
 #include <stdint.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../vendor/stb/stb.h"
+
+#define CHUNK_BUFFER_OFFSET 737280 / 5
 
 struct opengl_t {
 	GLint mvpLocation;
@@ -17,6 +16,7 @@ struct opengl_t {
 	GLuint vaoId;
 	GLuint vboId;
 	GLuint textureId;
+	int64_t subBuffersInfo[75];
 };
 
 static opengl_t globalOpenGlInfo;
@@ -165,7 +165,8 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 	globalOpenGlInfo.textureSamplerLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "textureSampler");
 	glCreateBuffers(1, &globalOpenGlInfo.vboId);
 	glCreateVertexArrays(1, &globalOpenGlInfo.vaoId);
-	
+	glNamedBufferData(globalOpenGlInfo.vboId, MEGABYTES(500), NULL, GL_DYNAMIC_DRAW);
+
 	glVertexArrayAttribBinding(globalOpenGlInfo.vaoId, 0, 1);
 	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 0, 3, GL_FLOAT, GL_FALSE, 0);
 	glEnableVertexArrayAttrib(globalOpenGlInfo.vaoId, 0);
@@ -191,13 +192,20 @@ void renderToOutput(renderGroup_t *renderGroup) {
 	glUniform1i(globalOpenGlInfo.textureSamplerLocation, 0);
 	glBindTextureUnit(0, globalOpenGlInfo.textureId);
 	glBindVertexArray(globalOpenGlInfo.vaoId);
-	glDrawArrays(GL_TRIANGLES, 0, trianglesCount);
+	for (int32_t i = 0; i < 75; ++i) {
+		if (globalOpenGlInfo.subBuffersInfo[i]) {
+			glDrawArrays(GL_TRIANGLES, i * CHUNK_BUFFER_OFFSET, globalOpenGlInfo.subBuffersInfo[i]);
+		}
+	}
 	glBindVertexArray(0);
 }
 
-void allocateRenderBuffer(void *data, uint64_t size) {
-	glNamedBufferData(globalOpenGlInfo.vboId, size, data, GL_DYNAMIC_DRAW);
-	trianglesCount = size / (sizeof(GLfloat) * 5);
+void pushVertices(int64_t offset, int64_t size, void *data) {
+	if (size == 0) {
+		return;
+	}
+	globalOpenGlInfo.subBuffersInfo[offset / CHUNK_RENDER_BUFFER_SIZE] = size / (sizeof(GLfloat) * 5);
+	glNamedBufferSubData(globalOpenGlInfo.vboId, offset, size, data);
 }
 
 

@@ -74,6 +74,7 @@ bool startGame(uint16_t windowWidth, uint16_t windowHeight, char *windowTitle) {
 		/***********/
 		double endTicks = glfwGetTimerValue();
 		dt = (endTicks - beginTicks) / (double)glfwGetTimerFrequency();
+		
 		if (dt > 1.0f) {
 			dt = 1.0f / 60.0f;
 		}

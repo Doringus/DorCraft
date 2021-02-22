@@ -3,9 +3,13 @@
 #include <GL/glew.h>
 #include <stdint.h>
 
+#include "dorcraftutils.h"
+
 #include "../../vendor/glm/glm.hpp"
 #include "../../vendor/glm/gtc/matrix_transform.hpp"
 #include "../../vendor/glm/gtc/type_ptr.hpp"
+
+#define CHUNK_RENDER_BUFFER_SIZE KILOBYTES(2880)
 
 struct renderGroup_t {
 	glm::mat4 modelMatrix;
@@ -21,4 +25,4 @@ struct renderBuffer_t {
 
 void initOpenGl(uint16_t windowWidth, uint16_t windowHeight);
 void renderToOutput(renderGroup_t *renderGroup);
-void allocateRenderBuffer(void *data, uint64_t size);
+void pushVertices(int64_t offset, int64_t size, void *data);
