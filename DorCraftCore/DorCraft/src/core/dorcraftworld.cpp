@@ -1,66 +1,95 @@
 #include "dorcraftworld.h"
 #include "dorcraft.h"
 
-int64_t getHashSlot(int64_t chunkX, int64_t chunkY, int64_t chunkZ) {
-	int64_t hashValue = (11 * chunkX + 6 * chunkY + 3 * chunkZ) % 31;
-	return((32 - 1) & hashValue );
+#define HASH_SLOTS_COUNT 32
+
+inline int64_t getHashSlot(int64_t chunkX, int64_t chunkZ) {
+	int64_t hashValue = (11 * chunkX + chunkZ) % (HASH_SLOTS_COUNT - 1);
+	return((HASH_SLOTS_COUNT - 1) & hashValue);
 }
 
-chunk_t *getChunk(world_t *world, int64_t chunkX, int64_t chunkY, int64_t chunkZ) {
-
-}
-
-chunk_t *createChunk(world_t *world, int64_t chunkX, int64_t chunkY, int64_t chunkZ) {
-
-}
-
-chunk_t *getChunk(world_t *world, int64_t chunkX, int64_t chunkY, int64_t chunkZ, memoryArena_t *chunksArena) {
-	int64_t hashSlot = getHashSlot(chunkX, chunkY, chunkZ);
-	chunk_t *chunk = *(world->chunksHash + hashSlot);
-	if (!chunk && !chunksArena) {
-		return(chunk);
+inline chunkHashSlot_t *createSlot(chunk_t *chunk, chunkHashSlot_t *prev) {
+	chunkHashSlot_t *slot = (chunkHashSlot_t*)malloc(sizeof(chunkHashSlot_t));
+	slot->chunk = chunk;
+	slot->next = NULL;
+	slot->prev = NULL;
+	if (prev) {
+		prev->next = slot;
+		slot->prev = prev;
 	}
-	if (!chunk && chunksArena) {
-		chunk = pushStruct(chunksArena, chunk_t);
-		*(world->chunksHash + hashSlot) = chunk;
-		return(chunk);
+	return (slot);
+}
+
+inline chunkHashSlot_t *getSlot(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ) {
+	int64_t hashSlot = getHashSlot(chunkX, chunkZ);
+	return (*(hashMap->chunksHash + hashSlot));
+}
+
+chunk_t *getChunk(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ) {
+	chunkHashSlot_t *slot = getSlot(hashMap, chunkX, chunkZ);
+
+	if (!slot) {
+		return NULL;
 	}
-	do {
-		if (chunkX == chunk->offsetX &&
-			chunkY == chunk->offsetY &&
-			chunkZ == chunk->offsetZ) {
+	chunk_t *chunk = slot->chunk;
+	while (slot->next) {
+		if (chunkX == slot->chunk->offsetX &&
+			chunkZ == slot->chunk->offsetZ) {
 			break;
 		}
-		if (chunksArena && !chunk->next) {
-			chunk_t *newChunk = pushStruct(chunksArena, chunk_t);
-			chunk->next = newChunk;
-			newChunk->prev = chunk;
-			chunk = newChunk;
-			break;
-		}
-		chunk = chunk->next;
-	} while (chunk);
+		slot = slot->next;
+		chunk = slot->chunk;
+	}
 	return(chunk);
 }
 
-static void removeFromHash(world_t *world, chunk_t *chunk, int32_t hashSlot) {
-	if (chunk->prev) {
-		chunk->prev->next = chunk->next;
-		if (chunk->next) {
-			chunk->next->prev = chunk->prev;
+void insertChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
+	chunkHashSlot_t *slot = getSlot(hashMap, chunk->offsetX, chunk->offsetZ);
+	int64_t slotIndex = getHashSlot(chunk->offsetX, chunk->offsetZ);
+
+	if (!slot) {
+		hashMap->chunksHash[slotIndex] = createSlot(chunk, NULL);
+	} else {
+		while (slot->next) {
+			slot = slot->next;
 		}
-	}
-	else {
-		if (chunk->next) {
-			world->chunksHash[hashSlot] = chunk->next;
-			chunk->next->prev = NULL;
-		}
-		else {
-			world->chunksHash[hashSlot] = NULL;
-		}
+		slot->next = createSlot(chunk, slot);
 	}
 }
 
+void removeChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
+	chunkHashSlot_t *slot = getSlot(hashMap, chunk->offsetX, chunk->offsetZ);
+	int64_t slotIndex = getHashSlot(chunk->offsetX, chunk->offsetZ);
+
+	if (!slot) {
+		return;
+	}
+	while (slot) {
+		if (chunk->offsetX == slot->chunk->offsetX &&
+			chunk->offsetZ == slot->chunk->offsetZ) {
+			break;
+		}
+		slot = slot->next;
+	}
+	if (!slot) {
+		return;
+	}
+	// remove first in sequence
+	if (!slot->prev) {
+		hashMap->chunksHash[slotIndex] = slot->next;
+		if (slot->next) {
+			slot->next->prev = NULL;
+		}
+	} else {
+		slot->prev->next = slot->next;
+		if (slot->next) {
+			slot->next->prev = slot->prev;
+		}
+	}
+	free(slot);
+}
+
+/*
 chunk_t *popInvisibleChunk(world_t *world, int64_t centerX, int64_t centerZ, int64_t radius) {
 	chunk_t *result = NULL;
 	int32_t hashSlot;
@@ -88,21 +117,4 @@ chunk_t *popInvisibleChunk(world_t *world, int64_t centerX, int64_t centerZ, int
 		}
 	}
 	return(result);
-}
-
-void moveChunk(world_t *world, chunk_t *chunk) {
-	int64_t hashSlot = getHashSlot(chunk->offsetX, chunk->offsetY, chunk->offsetZ);
-	chunk_t *chunkSlot = *(world->chunksHash + hashSlot);
-	if (!chunkSlot) {
-		*(world->chunksHash + hashSlot) = chunk;
-		return;
-	}
-	do {
-		if (!chunkSlot->next) {
-			chunkSlot->next = chunk;
-			chunk->prev = chunkSlot;
-			break;
-		}
-		chunkSlot = chunkSlot->next;
-	} while (chunkSlot);
-}
+} */

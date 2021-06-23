@@ -7,6 +7,7 @@
 #include "../../vendor/glm/gtc/matrix_transform.hpp"
 #include "../../vendor/glm/gtc/type_ptr.hpp"
 
+
 struct gameButtonState_t {
 	bool pressed;
 };
@@ -45,10 +46,11 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 
 ///// Internal 
 
+#include "dorcraftworld.h"
+
 #define CHUNK_SIZE 16
 #define WORLD_HEIGHT 48
 
-struct world_t;
 
 struct camera_t {
 	glm::vec3 position;
@@ -64,12 +66,13 @@ struct memoryArena_t {
 	uint64_t used;
 };
 
+
 struct gameState_t {
 	memoryArena_t chunksData; // info about blocks
 	memoryArena_t renderData; // info about all vertices
 	memoryArena_t worldArena; // hash map
 	camera_t camera;
-	world_t *world;
+	world_t world;
 };
 
 enum quadFace {
@@ -81,13 +84,6 @@ enum quadFace {
 	BACK
 };
 
-static void moveAndRotateCamera(gameInput_t *input, camera_t *camera);
-static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint8_t type, quadFace face, memoryArena_t *renderArena);
-static int64_t getChunkRenderBufferOffset();
-static void createChunksSection(int64_t offsetX, int64_t offsetZ, gameState_t *gameState, bool rewriteChunks = false, int64_t rewriteX = 0, int64_t rewriteY = 0);
-static void createWorldMesh(world_t *world);
-static void initializeArena(memoryArena_t *arena, uint64_t size, uint8_t *base);
-static void checkDrawableChunks(camera_t *camera, world_t *world);
 
 #define pushStruct(arena, type) (type*)pushStruct_(arena, sizeof(type))
 static void *pushStruct_(memoryArena_t *arena, uint64_t size) {
@@ -114,4 +110,10 @@ static void *reserveMemory(memoryArena_t *sourceArena, uint64_t arenaSize) {
 	void *result = sourceArena->base + sourceArena->used;
 	sourceArena->used += arenaSize;
 	return(result);
+}
+
+static void initializeArena(memoryArena_t *arena, uint64_t size, uint8_t *base) {
+	arena->base = base;
+	arena->size = size;
+	arena->used = 0;
 }
