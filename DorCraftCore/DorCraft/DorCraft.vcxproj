@@ -92,6 +92,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\core\chunk.cpp" />
     <ClCompile Include="src\core\dorcraft.cpp" />
     <ClCompile Include="src\core\dorcraftogl.cpp" />
     <ClCompile Include="src\core\dorcraftplatform.cpp" />
@@ -100,6 +101,7 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\core\chunk.h" />
     <ClInclude Include="src\core\dorcraft.h" />
     <ClInclude Include="src\core\dorcraftplatform.h" />
     <ClInclude Include="src\core\dorcraftutils.h" />

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DORCRAFTUTILS_H
+#define DORCRAFTUTILS_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -20,6 +21,15 @@
 #define KILOBYTES(value) ((value) * 1024)
 #define MEGABYTES(value) (KILOBYTES(value) * 1024)
 #define GIGABYTES(value) (MEGABYTES(value) * 1024)
+
+#define CHUNK_SIZE 16
+#define CHUNK_HEIGHT 256
+
+static inline int64_t get1DimIndex(int64_t x, int64_t y, int64_t z) {
+//	return(CHUNK_SIZE * CHUNK_HEIGHT * z + CHUNK_SIZE * y + x);
+	return(z * CHUNK_SIZE * CHUNK_HEIGHT + y * CHUNK_SIZE + x);
+}
+
 
 static void* readFile(char *filename) {
 	void* result = 0;
@@ -69,3 +79,5 @@ static bool writeFile(char *filename, unsigned int memSize, void *memory) {
 	}
 	return result;
 }
+
+#endif

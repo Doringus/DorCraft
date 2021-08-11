@@ -1,5 +1,6 @@
 #include "dorcraftworld.h"
 #include "dorcraft.h"
+#include "chunk.h"
 
 #define HASH_SLOTS_COUNT 32
 
@@ -40,6 +41,9 @@ chunk_t *getChunk(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ) {
 		slot = slot->next;
 		chunk = slot->chunk;
 	}
+	if (chunkX != slot->chunk->offsetX) {
+		return NULL;
+	}	
 	return(chunk);
 }
 

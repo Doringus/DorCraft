@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DORCRAFT_H
+#define DORCRAFT_H
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -48,10 +49,6 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 
 #include "dorcraftworld.h"
 
-#define CHUNK_SIZE 16
-#define WORLD_HEIGHT 48
-
-
 struct camera_t {
 	glm::vec3 position;
 	glm::vec3 front;
@@ -67,21 +64,14 @@ struct memoryArena_t {
 };
 
 
+
 struct gameState_t {
-	memoryArena_t chunksData; // info about blocks
-	memoryArena_t renderData; // info about all vertices
-	memoryArena_t worldArena; // hash map
+	memoryArena_t chunksData;
+	memoryArena_t verticesData;
+	memoryArena_t indicesData; 
 	camera_t camera;
 	world_t world;
-};
-
-enum quadFace {
-	TOP,
-	BOTTOM,
-	LEFT,
-	RIGHT,
-	FRONT,
-	BACK
+	chunk_t *chunks;
 };
 
 
@@ -93,7 +83,7 @@ static void *pushStruct_(memoryArena_t *arena, uint64_t size) {
 	return(result);
 }
 
-#define pushArray(arena, size, type) (type*)pushArray_(arena, size , sizeof(type))
+#define pushArray(arena, size, type) (type*)pushArray_(arena, size, sizeof(type))
 static void *pushArray_(memoryArena_t *arena, uint64_t arraySize, uint64_t size) {
 	assert((arena->used + size * arraySize) <= arena->size);
 	void *result = arena->base + arena->used;
@@ -117,3 +107,5 @@ static void initializeArena(memoryArena_t *arena, uint64_t size, uint8_t *base) 
 	arena->size = size;
 	arena->used = 0;
 }
+
+#endif

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DORCRAFTPLATFORM_H
+#define DORCRAFTPLATFORM_H
+
 #include <stdint.h>
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
@@ -13,3 +15,5 @@ struct windowInfo_t {
 };
 
 static windowInfo_t globalWindowInfo;
+
+#endif

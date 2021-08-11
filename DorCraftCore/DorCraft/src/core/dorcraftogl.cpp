@@ -7,6 +7,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../vendor/stb/stb.h"
 
+#include "chunk.h"
+
 #define CHUNK_BUFFER_OFFSET 737280 / 5
 
 struct opengl_t {
@@ -17,6 +19,7 @@ struct opengl_t {
 	GLuint vboId;
 	GLuint textureId;
 	int64_t subBuffersInfo[75];
+	GLuint VBO1, VBO2;
 };
 
 static opengl_t globalOpenGlInfo;
@@ -163,9 +166,8 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 	globalOpenGlInfo.basicShader = createShader(vertexShaderCode, fragmentShaderCode);
 	globalOpenGlInfo.mvpLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "mvp");
 	globalOpenGlInfo.textureSamplerLocation = glGetUniformLocation(globalOpenGlInfo.basicShader, "textureSampler");
-	glCreateBuffers(1, &globalOpenGlInfo.vboId);
+	
 	glCreateVertexArrays(1, &globalOpenGlInfo.vaoId);
-	glNamedBufferData(globalOpenGlInfo.vboId, MEGABYTES(500), NULL, GL_DYNAMIC_DRAW);
 
 	glVertexArrayAttribBinding(globalOpenGlInfo.vaoId, 0, 1);
 	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 0, 3, GL_FLOAT, GL_FALSE, 0);
@@ -175,29 +177,52 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 	glVertexArrayAttribFormat(globalOpenGlInfo.vaoId, 1, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat));
 	glEnableVertexArrayAttrib(globalOpenGlInfo.vaoId, 1);
 
-	glVertexArrayVertexBuffer(globalOpenGlInfo.vaoId, 1, globalOpenGlInfo.vboId, 0, sizeof(GLfloat) * 5);
 	stbi_set_flip_vertically_on_load(1);
 	int32_t textureWidth, textureHeight, bpp;
 	unsigned char *data = stbi_load("res\\grassTexture2.png", &textureWidth, &textureHeight, &bpp, 4);
  	allocateTexture((uint32_t)textureWidth, (uint32_t)textureHeight, bpp, data);
 	stbi_image_free(data);
+	
 }
 
-void renderToOutput(renderGroup_t *renderGroup) {
+void initRenderBuffer(renderBuffer_t *renderBuffer) {
+	glCreateBuffers(1, &renderBuffer->vbo);
+	glCreateBuffers(1, &renderBuffer->ibo);
+	renderBuffer->vao = globalOpenGlInfo.vaoId;
+	renderBuffer->verticesCount = 0;
+	renderBuffer->indicesCount = 0;
+}
+
+void fillRenderBuffer(renderBuffer_t *renderBuffer) {
+	glNamedBufferData(renderBuffer->vbo, renderBuffer->verticesCount * 5 * sizeof(GLfloat),
+		renderBuffer->vertices, GL_DYNAMIC_DRAW);
+	glNamedBufferData(renderBuffer->ibo, renderBuffer->indicesCount * sizeof(GLuint), renderBuffer->indices, GL_DYNAMIC_DRAW);
+}
+
+void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks[], uint8_t chunksCount) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(globalOpenGlInfo.basicShader);
-	glUniformMatrix4fv(globalOpenGlInfo.mvpLocation, 1, GL_FALSE, glm::value_ptr(
-											renderGroup->projectionMatrix * 
-											renderGroup->viewMatrix * renderGroup->modelMatrix));
+
+	// Set constant shader variables like texture
 	glUniform1i(globalOpenGlInfo.textureSamplerLocation, 0);
-	glBindTextureUnit(0, globalOpenGlInfo.textureId);
+	glBindTextureUnit(0, globalOpenGlInfo.textureId);;
+
+	// bind vao for chunks
 	glBindVertexArray(globalOpenGlInfo.vaoId);
-	for (int32_t i = 0; i < 75; ++i) {
-		if (globalOpenGlInfo.subBuffersInfo[i]) {
-			glDrawArrays(GL_TRIANGLES, i * CHUNK_BUFFER_OFFSET, globalOpenGlInfo.subBuffersInfo[i]);
-		}
+
+	for (uint8_t i = 0; i < chunksCount; ++i) {
+		renderChunk(vpMatrices, chunks[i]);
 	}
-	glBindVertexArray(0);
+	glUseProgram(0);
+ }	
+
+void renderChunk(viewProjectionMatrices_t *vpMatrices, chunk_t *chunk) {
+	glUniformMatrix4fv(globalOpenGlInfo.mvpLocation, 1, GL_FALSE, glm::value_ptr(
+		vpMatrices->projectionMatrix *
+		vpMatrices->viewMatrix * chunk->modelMatrix));
+	glVertexArrayElementBuffer(chunk->renderInfo.vao, chunk->renderInfo.ibo);
+	glVertexArrayVertexBuffer(chunk->renderInfo.vao, 1, chunk->renderInfo.vbo, 0, sizeof(GLfloat) * 5);
+	glDrawElements(GL_TRIANGLES, chunk->renderInfo.indicesCount, GL_UNSIGNED_INT, 0);
 }
 
 void pushVertices(int64_t offset, int64_t size, void *data) {
