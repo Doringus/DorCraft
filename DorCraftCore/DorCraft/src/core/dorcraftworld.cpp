@@ -28,28 +28,30 @@ inline chunkHashSlot_t *getSlot(worldHashMap_t *hashMap, int64_t chunkX, int64_t
 
 chunk_t *getChunk(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ) {
 	chunkHashSlot_t *slot = getSlot(hashMap, chunkX, chunkZ);
-
+	printf("GET %d %d\n", chunkX, chunkZ);
 	if (!slot) {
 		return NULL;
 	}
 	chunk_t *chunk = slot->chunk;
 	while (slot->next) {
-		if (chunkX == slot->chunk->offsetX &&
-			chunkZ == slot->chunk->offsetZ) {
+		if (chunkX == slot->chunk->x &&
+			chunkZ == slot->chunk->z) {
 			break;
 		}
 		slot = slot->next;
 		chunk = slot->chunk;
 	}
-	if (chunkX != slot->chunk->offsetX) {
+	if (chunkX != slot->chunk->x) {
 		return NULL;
-	}	
+	}
+	printf("POINTER %p\n", (void*)chunk);
 	return(chunk);
 }
 
 void insertChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
-	chunkHashSlot_t *slot = getSlot(hashMap, chunk->offsetX, chunk->offsetZ);
-	int64_t slotIndex = getHashSlot(chunk->offsetX, chunk->offsetZ);
+	chunkHashSlot_t *slot = getSlot(hashMap, chunk->x, chunk->z);
+	int64_t slotIndex = getHashSlot(chunk->x, chunk->z);
+	printf("INSERT %p\n", (void*)chunk);
 
 	if (!slot) {
 		hashMap->chunksHash[slotIndex] = createSlot(chunk, NULL);
@@ -62,15 +64,15 @@ void insertChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
 }
 
 void removeChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
-	chunkHashSlot_t *slot = getSlot(hashMap, chunk->offsetX, chunk->offsetZ);
-	int64_t slotIndex = getHashSlot(chunk->offsetX, chunk->offsetZ);
+	chunkHashSlot_t *slot = getSlot(hashMap, chunk->x, chunk->z);
+	int64_t slotIndex = getHashSlot(chunk->x, chunk->z);
 
 	if (!slot) {
 		return;
 	}
 	while (slot) {
-		if (chunk->offsetX == slot->chunk->offsetX &&
-			chunk->offsetZ == slot->chunk->offsetZ) {
+		if (chunk->x == slot->chunk->x &&
+			chunk->z == slot->chunk->z) {
 			break;
 		}
 		slot = slot->next;
@@ -91,6 +93,9 @@ void removeChunk(worldHashMap_t *hashMap, chunk_t *chunk) {
 		}
 	}
 	free(slot);
+}
+
+void freeWorld(worldHashMap_t * hashMap) {
 }
 
 /*

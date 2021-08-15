@@ -25,6 +25,7 @@ struct viewProjectionMatrices_t {
 };
 
 struct renderBuffer_t {
+	bool isDirty; /* flag marks that vertices were updated and need to update opengl buffer */
 	GLuint vbo;
 	GLuint vao;
 	GLuint ibo;
@@ -37,7 +38,7 @@ struct renderBuffer_t {
 void initOpenGl(uint16_t windowWidth, uint16_t windowHeight);
 void initRenderBuffer(renderBuffer_t *renderBuffer);
 void fillRenderBuffer(renderBuffer_t *renderBuffer);
-void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks[], uint8_t chunksCount);
+void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks, uint8_t chunksCount);
 void renderChunk(viewProjectionMatrices_t *vpMatrices, chunk_t *chunk);
 void pushVertices(int64_t offset, int64_t size, void *data);
 

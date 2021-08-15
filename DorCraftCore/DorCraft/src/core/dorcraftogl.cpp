@@ -191,15 +191,17 @@ void initRenderBuffer(renderBuffer_t *renderBuffer) {
 	renderBuffer->vao = globalOpenGlInfo.vaoId;
 	renderBuffer->verticesCount = 0;
 	renderBuffer->indicesCount = 0;
+	renderBuffer->isDirty = false;
 }
 
 void fillRenderBuffer(renderBuffer_t *renderBuffer) {
 	glNamedBufferData(renderBuffer->vbo, renderBuffer->verticesCount * 5 * sizeof(GLfloat),
 		renderBuffer->vertices, GL_DYNAMIC_DRAW);
 	glNamedBufferData(renderBuffer->ibo, renderBuffer->indicesCount * sizeof(GLuint), renderBuffer->indices, GL_DYNAMIC_DRAW);
+	renderBuffer->isDirty = false;
 }
 
-void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks[], uint8_t chunksCount) {
+void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks, uint8_t chunksCount) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(globalOpenGlInfo.basicShader);
 
@@ -211,7 +213,7 @@ void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks[], uint8
 	glBindVertexArray(globalOpenGlInfo.vaoId);
 
 	for (uint8_t i = 0; i < chunksCount; ++i) {
-		renderChunk(vpMatrices, chunks[i]);
+		renderChunk(vpMatrices, &chunks[i]);
 	}
 	glUseProgram(0);
  }	

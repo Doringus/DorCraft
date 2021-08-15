@@ -47,22 +47,26 @@ static void moveAndRotateCamera(gameInput_t *input, camera_t *camera) {
 }
 
 
-static inline int64_t getChunkCoord(int64_t coord) {
-	if (coord > 0) {
-		return (coord / CHUNK_SIZE) * CHUNK_SIZE;
-	} else {
-		return (coord / CHUNK_SIZE) * CHUNK_SIZE - CHUNK_SIZE;
-	}
-}
-
 static chunk_t *chunks[2];
 
 static void createWorld(gameState_t *state, uint8_t radius) {
-	for (uint8_t i = 0; i < radius * radius; ++i) {
-		chunk_t *chunk = &state->chunks[i];
-		chunk->blocks = pushArray(&state->chunksData, CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT, uint32_t);
-		chunk->renderInfo.vertices = pushArray(&state->verticesData, CHUNK_RENDER_BUFFER_SIZE, GLfloat);
-		chunk->renderInfo.indices = pushArray(&state->indicesData, CHUNK_INDICES_BUFFER_SIZE, GLuint);
+	for (uint8_t i = 0; i < radius; ++i) {
+		for (uint8_t j = 0; j < radius; ++j) {
+			chunk_t *chunk = &state->chunks[i * radius + j];
+			chunk->blocks = pushArray(&state->chunksData, CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT, uint32_t);
+			chunk->renderInfo.vertices = pushArray(&state->verticesData, CHUNK_RENDER_BUFFER_SIZE, GLfloat);
+			chunk->renderInfo.indices = pushArray(&state->indicesData, CHUNK_INDICES_BUFFER_SIZE, GLuint);
+			createChunk(&state->world, chunk, i * CHUNK_SIZE, j * CHUNK_SIZE);
+			insertChunk(&gameState->world.hashMap, chunk);
+		}
+	}
+}
+
+void updateWorld(gameState_t *gameState) {
+	for (int i = 0; i < 3 * 3; ++i) {
+		if (gameState->chunks[i].renderInfo.isDirty) {
+			fillRenderBuffer(&gameState->chunks[i].renderInfo);
+		}
 	}
 }
 
@@ -87,7 +91,7 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 
 		int64_t indicesDataOffset = renderDataOffset + renderDataSize;
 		int64_t indicesDataSize = sizeof(GLuint) * CHUNK_INDICES_BUFFER_SIZE * worldRadius * worldRadius;
-		int t = sizeof(gameState_t);
+
 		gameState = (gameState_t*)memory->permanentStorage;
 		gameState->chunks = (chunk_t*)((uint8_t*)memory->permanentStorage + sizeof(gameState_t));
 		initializeArena(&gameState->chunksData,   chunksDataSize,  (uint8_t*)memory->permanentStorage + chunksDataOffset);
@@ -110,10 +114,6 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		prevChunkZ = getChunkCoord(gameState->camera.position.z);
 
 		renderGroup.viewMatrix = glm::lookAt(gameState->camera.position, gameState->camera.position + gameState->camera.front, gameState->camera.up);
-		chunk_t *c1 = (chunk_t*)malloc(sizeof(chunk_t));
-		createChunk(&gameState->chunks[0], 0, 0);
-
-		chunks[0] = &gameState->chunks[0];
 	}
 	// input
 	//update
@@ -126,8 +126,9 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		prevChunkZ = currentChunkZ;
 		//checkDrawableChunks(gameState);
 	}
-	printf("%f, %f, %f \n", gameState->camera.position.x, gameState->camera.position.y, gameState->camera.position.z);
+	updateWorld(gameState);
 	// render
-	renderChunks(&renderGroup, chunks, 1);
+	//printf("%f %f %f\n", gameState->camera.position.x, gameState->camera.position.y, gameState->camera.position.z);
+	renderChunks(&renderGroup, gameState->chunks, 3 * 3);
 }
 

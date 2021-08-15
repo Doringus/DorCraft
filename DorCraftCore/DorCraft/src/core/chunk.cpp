@@ -6,8 +6,17 @@
 
 #include <GL/glew.h>
 
+int64_t getChunkCoord(int64_t coord) {
+	if (coord >= 0) {
+		return ((coord / CHUNK_SIZE) * CHUNK_SIZE);
+	} else {
+		return ((coord / CHUNK_SIZE) * CHUNK_SIZE - CHUNK_SIZE);
+	}
+}
 
-static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t type, quadFace face, int64_t *quadsCount, renderBuffer_t *renderBuffer) {
+static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t type, quadFace face, renderBuffer_t *renderBuffer) {
+	renderBuffer->isDirty = true;
+
 	GLfloat vertices[] = {
 		0.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ, 0.0f, 0.0f, // bottom-left back
 		1.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ, 0.2f, 0.0f, // bottom-right back
@@ -76,69 +85,136 @@ static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t
 		}
 	}
 	for (uint8_t i = 0; i < 6; ++i) {
-		indicesTemplate[i] += (*quadsCount * 4);
+		indicesTemplate[i] += renderBuffer->verticesCount;
 	}
+
 	memcpy(renderBuffer->indices + renderBuffer->indicesCount, &indicesTemplate[0], 6 * sizeof(GLuint));
 	renderBuffer->indicesCount += 6;
 	renderBuffer->verticesCount += 4;
-	(*quadsCount)++;
 }
 
-void createChunk(chunk_t *chunk, int64_t offsetX, int64_t offsetZ) {
-	chunk->offsetX = offsetX;
-	chunk->offsetZ = offsetZ;
+void createChunk(world_t *world, chunk_t *chunk, int64_t offsetX, int64_t offsetZ) {
+	chunk->x = offsetX;
+	chunk->z = offsetZ;
 	chunk->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, 0, offsetZ));
 	initRenderBuffer(&chunk->renderInfo);
 	createChunkBlocks(chunk);
-	createChunkMesh(chunk);
+	createChunkMesh(world, chunk);
 	fillRenderBuffer(&chunk->renderInfo);
 }
 
 /// Start point of chunk e.g chunk coord - bottom-left back point
-void createChunkMesh(chunk_t *chunk) {
+static void createChunkMesh(world_t *world, chunk_t *chunk) {
 	int64_t quadsCount = 0;
-	for (int64_t x = 1; x < CHUNK_SIZE - 1; ++x) {
-		for (int64_t y = 1; y < CHUNK_HEIGHT - 1; ++y) {
-			for (int64_t z = 1; z < CHUNK_SIZE; ++z) {
+	for (int64_t x = 0; x < CHUNK_SIZE; ++x) {
+		for (int64_t y = 0; y < CHUNK_HEIGHT; ++y) {
+			for (int64_t z = 0; z < CHUNK_SIZE; ++z) {
 				if (!chunk->blocks[get1DimIndex(x, y, z)]) {
 					continue;
 				}
 				// for each block check neighbours
 				//left
-				if (!chunk->blocks[get1DimIndex(x - 1, y, z)]) {
-					pushQuad(x, y, z, 1, LEFT, &quadsCount, &chunk->renderInfo);
+				if (x > 0 && !chunk->blocks[get1DimIndex(x - 1, y, z)]) {
+					pushQuad(x, y, z, 1, LEFT, &chunk->renderInfo);
 				}
 				//right
-				if (!chunk->blocks[get1DimIndex(x + 1, y, z)]) {
-					pushQuad(x, y, z, 1, RIGHT, &quadsCount, &chunk->renderInfo);
+				if (x < CHUNK_SIZE - 1 && !chunk->blocks[get1DimIndex(x + 1, y, z)]) {
+					pushQuad(x, y, z, 1, RIGHT, &chunk->renderInfo);
 				}
 				//top
-				if (!chunk->blocks[get1DimIndex(x, y + 1, z)]) {
-					pushQuad(x, y, z, 1, TOP, &quadsCount, &chunk->renderInfo);
+				if (y < CHUNK_HEIGHT - 1 &&  !chunk->blocks[get1DimIndex(x, y + 1, z)]) {
+					pushQuad(x, y, z, 1, TOP, &chunk->renderInfo);
 				}
 				// bottom
-				if (!chunk->blocks[get1DimIndex(x, y - 1, z)]) {
-					pushQuad(x, y, z, 1, BOTTOM, &quadsCount, &chunk->renderInfo);
-				}
-				//back
-				if (!chunk->blocks[get1DimIndex(x, y, z + 1)]) {
-					pushQuad(x, y, z, 1, FRONT, &quadsCount, &chunk->renderInfo);
+				if (y > 0 && !chunk->blocks[get1DimIndex(x, y - 1, z)]) {
+					pushQuad(x, y, z, 1, BOTTOM, &chunk->renderInfo);
 				}
 				//front
-				if (!chunk->blocks[get1DimIndex(x, y, z - 1)]) {
-					pushQuad(x, y, z, 1, BACK, &quadsCount, &chunk->renderInfo);
+				if (z < CHUNK_SIZE - 1 && !chunk->blocks[get1DimIndex(x, y, z + 1)]) {
+					pushQuad(x, y, z, 1, FRONT, &chunk->renderInfo);
+				}
+				//back
+				if (z > 0 && !chunk->blocks[get1DimIndex(x, y, z - 1)]) {
+					pushQuad(x, y, z, 1, BACK, &chunk->renderInfo);
+				}
+			}
+		}
+	}
+	// fill border blocks
+	//Right border
+	chunk_t *borderChunk = getChunk(&world->hashMap, chunk->x + CHUNK_SIZE, chunk->z);
+	if (borderChunk != NULL) {
+		for (int z = 0; z < CHUNK_SIZE; ++z) {
+			for (int y = 0; y < CHUNK_HEIGHT; ++y) {
+				// for right neighbour
+				if (borderChunk->blocks[get1DimIndex(0, y, z)] && !chunk->blocks[get1DimIndex(CHUNK_SIZE - 1, y, z)]) {
+					pushQuad(0, y, z, 1, LEFT, &borderChunk->renderInfo);
+				}
+				// for current chunk
+				if (!borderChunk->blocks[get1DimIndex(0, y, z)] && chunk->blocks[get1DimIndex(CHUNK_SIZE - 1, y, z)]) {
+					pushQuad(CHUNK_SIZE - 1, y, z, 1, RIGHT, &chunk->renderInfo);
+				}
+			}
+		} 
+	}
+	//Left border
+	borderChunk = getChunk(&world->hashMap, chunk->x - CHUNK_SIZE, chunk->z);
+	if (borderChunk != NULL) {
+		for (int z = 0; z < CHUNK_SIZE; ++z) {
+			for (int y = 0; y < CHUNK_HEIGHT; ++y) {
+				// for left chunk
+				if (borderChunk->blocks[get1DimIndex(CHUNK_SIZE - 1, y, z)] && !chunk->blocks[get1DimIndex(0, y, z)]) {
+					pushQuad(CHUNK_SIZE - 1, y, z, 1, RIGHT, &borderChunk->renderInfo);
+				}
+				// for current chunk
+				if (!borderChunk->blocks[get1DimIndex(CHUNK_SIZE - 1, y, z)] && chunk->blocks[get1DimIndex(0, y, z)]) {
+					pushQuad(0, y, z, 1, LEFT, &chunk->renderInfo);
+				}
+			}
+		} 
+	}
+	
+	// front border
+	borderChunk = getChunk(&world->hashMap, chunk->x, chunk->z + CHUNK_SIZE);
+	if (borderChunk != NULL) {
+		for (int x = 0; x < CHUNK_SIZE; ++x) {
+			for (int y = 0; y < CHUNK_HEIGHT; ++y) {
+				// for front neighbour 
+				if (borderChunk->blocks[get1DimIndex(x, y, 0)] && !chunk->blocks[get1DimIndex(x, y, CHUNK_SIZE - 1)]) {
+					pushQuad(x, y, 0, 1, BACK, &borderChunk->renderInfo);
+				}
+				// for current chunk
+				if (!borderChunk->blocks[get1DimIndex(x, y, 0)] && chunk->blocks[get1DimIndex(x, y, CHUNK_SIZE - 1)]) {
+					pushQuad(x, y, CHUNK_SIZE - 1, 1, FRONT, &chunk->renderInfo);
+				}
+			}
+		}
+	}
+	
+	// back border
+	borderChunk = getChunk(&world->hashMap, chunk->x, chunk->z - CHUNK_SIZE);
+	if (borderChunk != NULL) {
+		for (int x = 0; x < CHUNK_SIZE; ++x) {
+			for (int y = 0; y < CHUNK_HEIGHT; ++y) {
+				// for back neighbour
+				if (borderChunk->blocks[get1DimIndex(x, y, CHUNK_SIZE - 1)] && !chunk->blocks[get1DimIndex(x, y, 0)]) {
+					pushQuad(x, y, CHUNK_SIZE - 1, 1, FRONT, &borderChunk->renderInfo);
+				}
+				// for current chunk
+				if (!borderChunk->blocks[get1DimIndex(x, y, CHUNK_SIZE - 1)] && chunk->blocks[get1DimIndex(x, y, 0)]) {
+					pushQuad(x, y, 0, 1, BACK, &chunk->renderInfo);
 				}
 			}
 		}
 	}
 }
 
-void createChunkBlocks(chunk_t *chunk) {
+static void createChunkBlocks(chunk_t *chunk) {
 	double frequency = 1.0 / 90.0;
 	double heightMap[CHUNK_SIZE][CHUNK_SIZE];
 	// create height map
-	for (int64_t i = chunk->offsetX, mx = 0; i < CHUNK_SIZE + chunk->offsetX; ++i, ++mx) {
-		for (int64_t j = chunk->offsetZ, mz = 0; j < CHUNK_SIZE + chunk->offsetZ; ++j, ++mz) {
+	for (int64_t i = chunk->x, mx = 0; i < CHUNK_SIZE + chunk->x; ++i, ++mx) {
+		for (int64_t j = chunk->z, mz = 0; j < CHUNK_SIZE + chunk->z; ++j, ++mz) {
 			heightMap[mx][mz] = octavePerlin((double)i * frequency, (double)j * frequency, 6) * 48;
 		}
 	}
