@@ -47,27 +47,67 @@ static void moveAndRotateCamera(gameInput_t *input, camera_t *camera) {
 }
 
 
-static chunk_t *chunks[2];
-
 static void createWorld(gameState_t *state, uint8_t radius) {
+	state->world.radius = radius;
 	for (uint8_t i = 0; i < radius; ++i) {
 		for (uint8_t j = 0; j < radius; ++j) {
 			chunk_t *chunk = &state->chunks[i * radius + j];
 			chunk->blocks = pushArray(&state->chunksData, CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT, uint32_t);
 			chunk->renderInfo.vertices = pushArray(&state->verticesData, CHUNK_RENDER_BUFFER_SIZE, GLfloat);
 			chunk->renderInfo.indices = pushArray(&state->indicesData, CHUNK_INDICES_BUFFER_SIZE, GLuint);
-			createChunk(&state->world, chunk, i * CHUNK_SIZE, j * CHUNK_SIZE);
+			createChunk(chunk, i * CHUNK_SIZE, j * CHUNK_SIZE);
+			fillChunk(&state->world, chunk);
 			insertChunk(&gameState->world.hashMap, chunk);
 		}
 	}
 }
 
-void updateWorld(gameState_t *gameState) {
+void updateWorldMesh(gameState_t *gameState) {
 	for (int i = 0; i < 3 * 3; ++i) {
 		if (gameState->chunks[i].renderInfo.isDirty) {
 			fillRenderBuffer(&gameState->chunks[i].renderInfo);
 		}
 	}
+}
+
+static bool isPointInRect(int64_t rectX, int64_t rectZ, int64_t size, int64_t pointX, int64_t pointZ) {
+	return(rectX <= pointX && pointX <= rectX + size && rectZ <= pointZ && pointZ <= rectZ + size);
+}
+
+static bool isChunkInWorldRect(int64_t centerX, int64_t centerZ, chunk_t *chunk) {
+	int64_t bottomRightFrontX = chunk->x + CHUNK_SIZE;
+	int64_t bottomRightFrontZ = chunk->z + CHUNK_SIZE;
+	int64_t worldLeftX = centerX - ((3 - 1) / 2) * CHUNK_SIZE;
+	int64_t worldLeftZ = centerZ - ((3 - 1) / 2) * CHUNK_SIZE;
+
+	/// Need to check is left point or right point in drawing distance
+
+	return(isPointInRect(worldLeftX, worldLeftZ, 3 * CHUNK_SIZE, chunk->x, chunk->z) && isPointInRect(worldLeftX, worldLeftZ, 3 * CHUNK_SIZE, bottomRightFrontX, bottomRightFrontZ));
+}
+
+static void updateDrawableChunks(gameState_t *gameState, int64_t prevX, int64_t prevZ, int64_t currentX, int64_t currentZ) {
+	chunk_t *chunksToRewrite[3 * 3];
+	int chunksToRewriteSize = 0;
+	for (int i = 0; i < 3 * 3; ++i) {
+		if (!isChunkInWorldRect(currentX, currentZ, &gameState->chunks[i])) {
+			chunksToRewrite[chunksToRewriteSize] = removeChunk(&gameState->world.hashMap, gameState->chunks[i].x, gameState->chunks[i].z);
+			chunksToRewriteSize++;
+		}
+	}
+	
+	int64_t worldLeftX = currentX - ((3 - 1) / 2) * CHUNK_SIZE;
+	int64_t worldLeftZ = currentZ - ((3 - 1) / 2) * CHUNK_SIZE;
+	for (int i = 0, chunksToRewriteIndex = 0; i < 3; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			if (!getChunk(&gameState->world.hashMap, worldLeftX + i * CHUNK_SIZE, worldLeftZ + j * CHUNK_SIZE)) {
+				setChunkCoords(chunksToRewrite[chunksToRewriteIndex], worldLeftX + i * CHUNK_SIZE, worldLeftZ + j * CHUNK_SIZE);
+				fillChunk(&gameState->world, chunksToRewrite[chunksToRewriteIndex]);
+				insertChunk(&gameState->world.hashMap, chunksToRewrite[chunksToRewriteIndex]);
+				chunksToRewriteIndex++;
+			}
+		}
+	}
+	
 }
 
 void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputArea_t *renderOutputArea) {
@@ -103,7 +143,7 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		perlinSeed(12041218833);
 		createWorld(gameState, worldRadius);
 
-		gameState->camera.position = glm::vec3(1.0f, -1.0f, -1.0f);
+		gameState->camera.position = glm::vec3(20.0f, 40.0f, 20.0f);
 		gameState->camera.front = glm::vec3(0.0f, 0.0f, 1.0f);
 		gameState->camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 		gameState->camera.yaw = -90.0f;
@@ -117,16 +157,18 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 	}
 	// input
 	//update
+	// update camera
 	moveAndRotateCamera(input, &gameState->camera);
 	renderGroup.viewMatrix = glm::lookAt(gameState->camera.position, gameState->camera.position + gameState->camera.front, gameState->camera.up);
+	// check chunks
 	int64_t currentChunkX = getChunkCoord(gameState->camera.position.x);
 	int64_t currentChunkZ = getChunkCoord(gameState->camera.position.z);
 	if (currentChunkX != prevChunkX || currentChunkZ != prevChunkZ) {
+		updateDrawableChunks(gameState, prevChunkX, prevChunkZ, currentChunkX, currentChunkZ);
 		prevChunkX = currentChunkX;
 		prevChunkZ = currentChunkZ;
-		//checkDrawableChunks(gameState);
 	}
-	updateWorld(gameState);
+	updateWorldMesh(gameState);
 	// render
 	//printf("%f %f %f\n", gameState->camera.position.x, gameState->camera.position.y, gameState->camera.position.z);
 	renderChunks(&renderGroup, gameState->chunks, 3 * 3);

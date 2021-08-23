@@ -36,6 +36,7 @@ struct renderBuffer_t {
 };
 
 void initOpenGl(uint16_t windowWidth, uint16_t windowHeight);
+void createRenderBuffer(renderBuffer_t *renderBuffer);
 void initRenderBuffer(renderBuffer_t *renderBuffer);
 void fillRenderBuffer(renderBuffer_t *renderBuffer);
 void renderChunks(viewProjectionMatrices_t *vpMatrices, chunk_t *chunks, uint8_t chunksCount);

@@ -93,11 +93,19 @@ static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t
 	renderBuffer->verticesCount += 4;
 }
 
-void createChunk(world_t *world, chunk_t *chunk, int64_t offsetX, int64_t offsetZ) {
+void createChunk(chunk_t *chunk, int64_t offsetX, int64_t offsetZ) {
+	setChunkCoords(chunk, offsetX, offsetZ);
+	createRenderBuffer(&chunk->renderInfo);
+}
+
+void setChunkCoords(chunk_t *chunk, int64_t offsetX, int64_t offsetZ) {
 	chunk->x = offsetX;
 	chunk->z = offsetZ;
 	chunk->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(offsetX, 0, offsetZ));
 	initRenderBuffer(&chunk->renderInfo);
+}
+
+void fillChunk(world_t *world, chunk_t *chunk) {
 	createChunkBlocks(chunk);
 	createChunkMesh(world, chunk);
 	fillRenderBuffer(&chunk->renderInfo);

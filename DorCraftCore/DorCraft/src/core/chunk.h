@@ -30,7 +30,11 @@ enum quadFace {
 /* return origin chunk coordinate e.g. bottom-left back point based on passed coord from within chunk*/
 int64_t getChunkCoord(int64_t coord);
 
-void createChunk(world_t *world, chunk_t *chunk, int64_t offsetX, int64_t offsetZ);
+void createChunk(chunk_t *chunk, int64_t offsetX, int64_t offsetZ);
+
+void setChunkCoords(chunk_t *chunk, int64_t offsetX, int64_t offsetZ);
+
+void fillChunk(world_t *world, chunk_t *chunk);
 
 static void createChunkMesh(world_t *world, chunk_t *chunk);
 

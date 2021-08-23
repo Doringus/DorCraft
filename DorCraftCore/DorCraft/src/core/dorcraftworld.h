@@ -25,7 +25,7 @@ chunk_t *getChunk(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ);
 
 void insertChunk(worldHashMap_t *hashMap, chunk_t *chunk);
 
-void removeChunk(worldHashMap_t *hashMap, chunk_t *chunk);
+chunk_t *removeChunk(worldHashMap_t *hashMap, int64_t chunkX, int64_t chunkZ);
 
 void freeWorld(worldHashMap_t *hashMap);
 

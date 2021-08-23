@@ -185,10 +185,14 @@ void initOpenGl(uint16_t windowWidth, uint16_t windowHeight) {
 	
 }
 
-void initRenderBuffer(renderBuffer_t *renderBuffer) {
+void createRenderBuffer(renderBuffer_t *renderBuffer) {
 	glCreateBuffers(1, &renderBuffer->vbo);
 	glCreateBuffers(1, &renderBuffer->ibo);
 	renderBuffer->vao = globalOpenGlInfo.vaoId;
+	initRenderBuffer(renderBuffer);
+}
+
+void initRenderBuffer(renderBuffer_t *renderBuffer) {
 	renderBuffer->verticesCount = 0;
 	renderBuffer->indicesCount = 0;
 	renderBuffer->isDirty = false;
