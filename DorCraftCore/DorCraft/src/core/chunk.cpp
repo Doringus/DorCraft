@@ -17,16 +17,25 @@ int64_t getChunkCoord(int64_t coord) {
 static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t type, quadFace face, renderBuffer_t *renderBuffer) {
 	renderBuffer->isDirty = true;
 
-	GLfloat vertices[] = {
-		0.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ, 0.0f, 0.0f, // bottom-left back
-		1.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ, 0.2f, 0.0f, // bottom-right back
-		1.0f + offsetX, 1.0f + offsetY, 0.0f + offsetZ, 0.2f, 1.0f, // top-right back
-		0.0f + offsetX, 1.0f + offsetY, 0.0f + offsetZ, 0.0f, 1.0f, // top-left back
-		0.0f + offsetX, 0.0f + offsetY, 1.0f + offsetZ, 0.0f, 0.0f, // bottom-left front
-		1.0f + offsetX, 0.0f + offsetY, 1.0f + offsetZ, 0.2f, 0.0f, // bottom-right front
-		1.0f + offsetX, 1.0f + offsetY, 1.0f + offsetZ, 0.2f, 1.0f, // top-right front
-		0.0f + offsetX, 1.0f + offsetY, 1.0f + offsetZ, 0.0f, 1.0f  // top-left front
+	GLfloat leftRightVertices[] = {
+		0.0f + offsetX + (face == RIGHT ? 1 : 0), 1.0f + offsetY, 1.0f + offsetZ, 0.0f, 1.0f, // top-left front
+		0.0f + offsetX + (face == RIGHT ? 1 : 0), 0.0f + offsetY, 1.0f + offsetZ, 0.0f, 0.0f, // bottom-left front
+		0.0f + offsetX + (face == RIGHT ? 1 : 0), 0.0f + offsetY, 0.0f + offsetZ, 0.2f, 0.0f, // bottom-left back
+		0.0f + offsetX + (face == RIGHT ? 1 : 0), 1.0f + offsetY, 0.0f + offsetZ, 0.2f, 1.0f // top-left back
 	};
+	GLfloat bottomTopVertices[] = {
+		0.0f + offsetX, 0.0f + offsetY + (face == TOP ? 1 : 0), 1.0f + offsetZ, 0.0f, 0.0f, // bottom-left front
+		1.0f + offsetX, 0.0f + offsetY + (face == TOP ? 1 : 0), 1.0f + offsetZ, 0.2f, 0.0f, // bottom-right front
+		1.0f + offsetX, 0.0f + offsetY + (face == TOP ? 1 : 0), 0.0f + offsetZ, 0.2f, 1.0f, // bottom-right back
+		0.0f + offsetX, 0.0f + offsetY + (face == TOP ? 1 : 0), 0.0f + offsetZ, 0.0f, 1.0f, // bottom-left back
+	};
+	GLfloat backFrontVertices[] = {
+		0.0f + offsetX, 1.0f + offsetY, 0.0f + offsetZ + (face == FRONT ? 1 : 0), 0.0f, 1.0f, // top-left back
+		0.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ + (face == FRONT ? 1 : 0), 0.0f, 0.0f, // bottom-left back
+		1.0f + offsetX, 0.0f + offsetY, 0.0f + offsetZ + (face == FRONT ? 1 : 0), 0.2f, 0.0f, // bottom-right back
+		1.0f + offsetX, 1.0f + offsetY, 0.0f + offsetZ + (face == FRONT ? 1 : 0), 0.2f, 1.0f, // top-right back
+	};
+
 	GLuint indicesTemplate[6] = {
 		0, 1, 3,
 		1, 2, 3
@@ -34,56 +43,17 @@ static void pushQuad(int64_t offsetX, int64_t offsetY, int64_t offsetZ, uint32_t
 
 	int64_t offset = renderBuffer->verticesCount * 5;
 
-	switch (face) {
-		case quadFace::TOP: {
-			memcpy(renderBuffer->vertices + offset, &vertices[35], 5 * sizeof(GLfloat)); // top-left front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[30], 5 * sizeof(GLfloat)); // top-right front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[10], 10 * sizeof(GLfloat)); // top-right back && top-left back
-			break;
-		}
-		case quadFace::BOTTOM: {
-			memcpy(renderBuffer->vertices + offset, &vertices[20], 10 * sizeof(GLfloat)); // bottom-left front && bottom-right front
-			offset += 10;
-			memcpy(renderBuffer->vertices + offset, &vertices[5], 5 * sizeof(GLfloat)); // bottom-right back
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[0], 5 * sizeof(GLfloat)); // bottom-left back
-			break;
-		}
-		case quadFace::LEFT: {
-			memcpy(renderBuffer->vertices + offset, &vertices[35], 5 * sizeof(GLfloat)); // top-left front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[20], 5 * sizeof(GLfloat)); // bottom-left front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[0], 5 * sizeof(GLfloat)); // bottom-left back
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[15], 5 * sizeof(GLfloat)); // top-left back
-			break;
-		}
-		case quadFace::RIGHT: {
-			memcpy(renderBuffer->vertices + offset, &vertices[30], 5 * sizeof(GLfloat)); // top-right front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[25], 5* sizeof(GLfloat)); // bottom-right front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[5], 5 * sizeof(GLfloat)); // bottom-right back
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[10], 5 * sizeof(GLfloat)); // top-right back
-			break;
-		}	
-		case quadFace::FRONT: {
-			memcpy(renderBuffer->vertices + offset, &vertices[35], 5 * sizeof(GLfloat)); // top-left front
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[20], 15 * sizeof(GLfloat)); // bottom-left front && bottom-right front &&  top-right front
-			break;
-		}
-		case quadFace::BACK: {
-			memcpy(renderBuffer->vertices + offset, &vertices[15], 5 * sizeof(GLfloat)); // top-left back
-			offset += 5;
-			memcpy(renderBuffer->vertices + offset, &vertices[0], 15 * sizeof(GLfloat)); // bottom-left back && bottom-right back && top-right back
-			break;
-		}
+	if (face == TOP || face == BOTTOM) {
+		memcpy(renderBuffer->vertices + offset, &bottomTopVertices, 20 * sizeof(GLfloat)); // bottom-left front && bottom-right front
+		offset += 20;
+	} else if (face == LEFT || face == RIGHT) {
+		memcpy(renderBuffer->vertices + offset, &leftRightVertices, 20 * sizeof(GLfloat)); // bottom-left front && bottom-right front
+		offset += 20;
+	} else if (face == FRONT || face == BACK) {
+		memcpy(renderBuffer->vertices + offset, &backFrontVertices, 20 * sizeof(GLfloat)); // bottom-left front && bottom-right front
+		offset += 20;
 	}
+
 	for (uint8_t i = 0; i < 6; ++i) {
 		indicesTemplate[i] += renderBuffer->verticesCount;
 	}
