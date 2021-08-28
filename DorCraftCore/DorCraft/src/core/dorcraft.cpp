@@ -8,6 +8,27 @@
 #include "dorcraftworld.h"
 #include "chunk.h"
 
+struct camera_t {
+	glm::vec3 position;
+	glm::vec3 front;
+	glm::vec3 up;
+	double pitch;
+	double yaw;
+};
+
+struct skybox_t {
+	renderBuffer_t renderBuffer;
+};
+
+struct gameState_t {
+	memoryArena_t chunksData;
+	memoryArena_t verticesData;
+	memoryArena_t indicesData;
+	camera_t camera;
+	world_t world;
+	skybox_t skybox;
+	chunk_t *chunks;
+};
 
 static viewProjectionMatrices_t renderGroup;
 static gameState_t *gameState;
@@ -46,6 +67,62 @@ static void moveAndRotateCamera(gameInput_t *input, camera_t *camera) {
 	camera->front = glm::normalize(camera->front);
 }
 
+static void createSkybox(gameState_t *state, skybox_t *skybox) {
+	GLfloat skyboxVertices[] = {          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+
+	skybox->renderBuffer.vertices = pushArray(&state->verticesData, 108, GLfloat);
+	skybox->renderBuffer.indices = pushArray(&state->indicesData, 36, GLuint);
+	
+	createRenderBuffer(&skybox->renderBuffer);
+
+	memcpy(skybox->renderBuffer.vertices, &skyboxVertices, 108 * sizeof(GLfloat));
+	skybox->renderBuffer.verticesCount += 36;
+
+	fillRenderBuffer(&skybox->renderBuffer);
+}
 
 static void createWorld(gameState_t *state, uint8_t radius) {
 	state->world.radius = radius;
@@ -127,10 +204,10 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		int64_t chunksDataSize = sizeof(uint32_t) * CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT * worldRadius * worldRadius;
 
 		int64_t renderDataOffset = chunksDataOffset + chunksDataSize;
-		int64_t renderDataSize = sizeof(GLfloat) * CHUNK_RENDER_BUFFER_SIZE * worldRadius * worldRadius;
+		int64_t renderDataSize = sizeof(GLfloat) * CHUNK_RENDER_BUFFER_SIZE * worldRadius * worldRadius + 600;
 
 		int64_t indicesDataOffset = renderDataOffset + renderDataSize;
-		int64_t indicesDataSize = sizeof(GLuint) * CHUNK_INDICES_BUFFER_SIZE * worldRadius * worldRadius;
+		int64_t indicesDataSize = sizeof(GLuint) * CHUNK_INDICES_BUFFER_SIZE * worldRadius * worldRadius + 300;
 
 		gameState = (gameState_t*)memory->permanentStorage;
 		gameState->chunks = (chunk_t*)((uint8_t*)memory->permanentStorage + sizeof(gameState_t));
@@ -142,13 +219,14 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 		
 		perlinSeed(12041218833);
 		createWorld(gameState, worldRadius);
+		createSkybox(gameState, &gameState->skybox);
 
 		gameState->camera.position = glm::vec3(20.0f, 40.0f, 20.0f);
-		gameState->camera.front = glm::vec3(0.0f, 0.0f, 1.0f);
+		gameState->camera.front = glm::vec3(0.0f, 0.0f, -1.0f);
 		gameState->camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 		gameState->camera.yaw = -90.0f;
 
-		renderGroup.projectionMatrix = glm::perspective(45.0f, (GLfloat)renderOutputArea->areaWidth / (GLfloat)renderOutputArea->areaHeight, 0.1f, 2500.0f);
+		renderGroup.projectionMatrix = glm::perspective(45.0f, (GLfloat)renderOutputArea->areaWidth / (GLfloat)renderOutputArea->areaHeight, 0.1f, 100.0f);
 
 		prevChunkX = getChunkCoord(gameState->camera.position.x);
 		prevChunkZ = getChunkCoord(gameState->camera.position.z);
@@ -172,5 +250,6 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 	// render
 	//printf("%f %f %f\n", gameState->camera.position.x, gameState->camera.position.y, gameState->camera.position.z);
 	renderChunks(&renderGroup, gameState->chunks, 3 * 3);
+	renderSkybox(&renderGroup, &gameState->skybox.renderBuffer);
 }
 

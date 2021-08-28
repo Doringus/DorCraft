@@ -110,6 +110,18 @@
     <ClInclude Include="src\core\noisegenerator.h" />
     <ClInclude Include="vendor\stb\stb_truetype.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\shaders\skybox.frag" />
+    <None Include="src\shaders\skybox.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\skyboxBack.png" />
+    <Image Include="res\skyboxBottom.png" />
+    <Image Include="res\skyboxFront.png" />
+    <Image Include="res\skyboxLeft.png" />
+    <Image Include="res\skyboxRight.png" />
+    <Image Include="res\skyboxTop.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -63,4 +63,28 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\shaders\skybox.vert" />
+    <None Include="src\shaders\skybox.frag" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\skyboxBack.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="res\skyboxBottom.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="res\skyboxFront.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="res\skyboxLeft.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="res\skyboxRight.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="res\skyboxTop.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

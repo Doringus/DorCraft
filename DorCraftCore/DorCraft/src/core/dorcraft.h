@@ -49,31 +49,11 @@ void gameUpdateAndRender(gameInput_t *input, gameMemory_t *memory, renderOutputA
 
 #include "dorcraftworld.h"
 
-struct camera_t {
-	glm::vec3 position;
-	glm::vec3 front;
-	glm::vec3 up;
-	double pitch;
-	double yaw;
-};
-
 struct memoryArena_t {
 	uint8_t *base;
 	uint64_t size;
 	uint64_t used;
 };
-
-
-
-struct gameState_t {
-	memoryArena_t chunksData;
-	memoryArena_t verticesData;
-	memoryArena_t indicesData; 
-	camera_t camera;
-	world_t world;
-	chunk_t *chunks;
-};
-
 
 #define pushStruct(arena, type) (type*)pushStruct_(arena, sizeof(type))
 static void *pushStruct_(memoryArena_t *arena, uint64_t size) {
